@@ -33,7 +33,7 @@ class SepaPainDirectDebitPaymentInstruction extends SepaPainPaymentInstruction{
 	 * @access public
 	 * @var array string
 	 */
-	public static $requiredOptions = array('id', 'method', 'collectionDate', 'creditorName', 'creditorCountry', 'creditorAddressLines', 'creditorIBAN', 'creditorBIC', 'creditorSchemeName', 'creditorSchemePrivateId');
+	public static $requiredOptions = array('id', 'method', 'collectionDate', 'creditorName', 'creditorCountry', 'creditorAddressLines', 'creditorIBAN', 'creditorBIC', 'creditorSchemePrivateId');
 	
 	/**
 	 * Array with options that can be used
@@ -118,7 +118,7 @@ class SepaPainDirectDebitPaymentInstruction extends SepaPainPaymentInstruction{
 		$info->addChild('ChrgBr', 'SLEV');
 		
 		$scheme = $info->addChild('CdtrSchmeId');
-		$scheme->addChild('Nm', $this->cleanString($this->options['creditorSchemeName']));
+		$this->setOptionalElement($scheme, 'Nm', 'creditorSchemeName');
 		$other = $scheme->addChild('Id')->addChild('PrvtId')->addChild('Othr');
 		$other->addChild('Id', $this->cleanString($this->options['creditorSchemePrivateId']));
 		$other->addChild('SchmeNm')->addChild('Prtry', 'SEPA');

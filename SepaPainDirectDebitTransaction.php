@@ -106,8 +106,9 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 		
 		$debtor = $txInfo->addChild('Dbtr');
 		$debtor->addChild('Nm', $this->options['debtorName']);
-		if($this->optionIsSet('debtorAddressLines')){
+		if($this->optionIsSet('debtorAddressLines') || $this->optionIsSet('debtorCountry')){
 			$address = $debtor->addChild('PstlAdr');
+			$this->setOptionalElement($address, 'Ctry', 'debtorCountry');
 			$addressLines = is_string($this->options['debtorAddressLines']) ? explode("\n", $this->options['debtorAddressLines']) : $this->options['debtorAddressLines'];
 			$i = 0;
 			foreach($addressLines as $line){
@@ -115,7 +116,6 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 				if($i <= 2) $address->addChild('AdrLine', $this->cleanString($line));
 			}
 		}
-		$this->setOptionalElement($debtor, 'CtryOfRes', 'debtorCountry');
 		$txInfo->addChild('DbtrAcct')->addChild('Id')->addChild('IBAN', $this->options['debtorIBAN']);	
 	}
 }
