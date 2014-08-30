@@ -38,12 +38,13 @@ abstract class SepaPainTransaction extends SepaPain{
 	/**
 	 * Constructor
 	 * 
-	 * @access public
+	 * @access protected
 	 * @param array mixed $options
 	 * @param SepaPainPaymentInstruction $instruction
+         * @param array int $maxLengths
 	 */
-	public function __construct($options, SepaPainPaymentInstruction &$instruction){
-		parent::__construct($options);
+	protected function __construct($options, SepaPainPaymentInstruction &$instruction, $maxLengths = null){
+		parent::__construct($options, $maxLengths);
 		$this->instruction = &$instruction;
 	}
 }

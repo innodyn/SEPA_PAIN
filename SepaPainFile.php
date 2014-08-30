@@ -51,9 +51,10 @@ abstract class SepaPainFile extends SepaPain{
 	 * 
 	 * @access protected
 	 * @param array mixed $options
+         * @param array int $maxLengths
 	 */
-	protected function __construct($options){
-		parent::__construct($options);
+	protected function __construct($options, $maxLengths = null){
+		parent::__construct($options, $maxLengths);
 		$this->numberOfTransfers = 0;
 		$this->controlSum = 0;	
 	}

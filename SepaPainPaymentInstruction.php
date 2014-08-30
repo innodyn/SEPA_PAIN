@@ -72,12 +72,13 @@ abstract class SepaPainPaymentInstruction extends SepaPain{
 	/**
 	 * Constructor
 	 * 
-	 * @access public
+	 * @access protected
 	 * @param array mixed $options
 	 * @param SepaPainFile $file
+         * @param array int $maxLengths
 	 */
-	public function __construct($options, SepaPainFile &$file){
-		parent::__construct($options);
+	protected function __construct($options, SepaPainFile &$file, $maxLengths = null){
+		parent::__construct($options, $maxLengths);
 		$this->file = &$file;
 	}
 	
@@ -90,7 +91,9 @@ abstract class SepaPainPaymentInstruction extends SepaPain{
 	 * @return SepaPainTransaction
 	 */
 	public function addTransaction($options){
-		if(!array_key_exists('amount', $options)) throw new Exception('Amount is missing');
+		if(!array_key_exists('amount', $options)){
+                    throw new Exception('Amount is missing');
+                }
 		$transaction = $this->constructTransaction($options);
 		$this->transactions[] = $transaction;
 		$this->controlSum += $options['amount'];

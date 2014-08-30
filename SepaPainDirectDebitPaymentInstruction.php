@@ -44,6 +44,16 @@ class SepaPainDirectDebitPaymentInstruction extends SepaPainPaymentInstruction{
 	 */
 	public static $allowedOptions = array('id', 'method', 'sequenceType', 'collectionDate', 'creditorName', 'creditorCountry', 'creditorAddressLines', 'creditorIBAN', 'creditorBIC', 'creditorSchemeName', 'creditorSchemePrivateId');
 	
+         /**
+         * Associative array with maxmimum lengths of option strings
+         * @var array int
+         */
+        public static $optionMaxLengths = array(    'id' => 35,
+                                                    'creditorName' => 70,
+                                                    'creditorAddressLines' => 70,
+                                                    'creditorSchemeName' => 70,
+                                                    'creditorSchemePrivateId' => 35);
+        
 	/**
 	 * Constructor
 	 * 
@@ -62,10 +72,20 @@ class SepaPainDirectDebitPaymentInstruction extends SepaPainPaymentInstruction{
 		if(count($options['creditorAddressLines']) > 2){
 			throw new Exception('Too many creditor address lines in direct debit payment instruction. Maximum is 2.');
 		}
+                if(!is_a($options['collectionDate'], 'DateTime')){
+                    if(!self::validateDateString($options['collectionDate'])){
+                        throw new Exception('Invalid or incorrectly formatted collection date (YYYY MM DD).');
+                    }
+                }
 		if(!array_key_exists('creditorName', $options)) $options['creditorName'] = $file->initiatingPartyName;
 		if(!array_key_exists('method', $options)) $options['method'] = $file::PAYMENT_METHOD;
 		if(!array_key_exists('creditorCountry', $options)) $options['creditorCountry'] = $file::DEFAULT_COUNTRY;
-		parent::__construct($options, $file);
+                if(!array_key_exists($options['creditorCountry'], self::$ISO3166)){
+                    echo $options['creditorCountry'];
+                    die();
+                    throw new Exception('Creditor country is not a valid ISO 3166 country code.');
+                }
+		parent::__construct($options, $file, $this->optionMaxLengths);
 	}
 	
 	/**
@@ -103,7 +123,7 @@ class SepaPainDirectDebitPaymentInstruction extends SepaPainPaymentInstruction{
 		$info->addChild('ReqdColltnDt', $this->options['collectionDate']->format('Y-m-d'));
 		
 		$creditor = $info->addChild('Cdtr');
-		$creditor->addChild('Nm', $this->cleanString($this->options['creditorName']));
+		$creditor->addChild('Nm', $this->cleanString($this->options['creditorName'], 70));
 		$address = $creditor->addChild('PstlAdr');
 		$address->addChild('Ctry', $this->cleanString($this->options['creditorCountry']));
 		if(is_string($this->options['creditorAddressLines'])){

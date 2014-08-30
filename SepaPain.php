@@ -296,16 +296,112 @@ abstract class SepaPain{
 		'ZM' => 'Zambia',
 		'ZW' => 'Zimbabwe'
 	);
+        
+        /**
+	 * Array of IBAN lengths for ISO3166 country codes
+	 * 
+	 * @access public
+	 * @static
+	 * @var array int
+	 */
+        public static $ibanLengths = array(
+                'AL' => 28,
+                'AD' => 24,
+                'AT' => 20,
+                'BE' => 16,
+                'BA' => 20,
+                'BG' => 22,
+                'HR' => 21,
+                'CY' => 28,
+                'CZ' => 24,
+                'DK' => 18,
+                'EE' => 20,
+                'FO' => 18,
+                'FI' => 18,
+                'FR' => 27,
+                'GE' => 22,
+                'DE' => 22,
+                'GI' => 23,
+                'GR' => 27,
+                'GL' => 18,
+                'HU' => 28,
+                'IS' => 26,
+                'IE' => 22,
+                'IT' => 27,
+                'LV' => 21,
+                'LI' => 21,
+                'LT' => 20,
+                'LU' => 20,
+                'MK' => 19,
+                'MT' => 31,
+                'MC' => 27,
+                'ME' => 22,
+                'NL' => 18,
+                'NO' => 15,
+                'PL' => 28,
+                'PT' => 25,
+                'RO' => 24,
+                'SM' => 27,
+                'RS' => 22,
+                'SK' => 24,
+                'SI' => 19,
+                'ES' => 24,
+                'SE' => 24,
+                'CH' => 21,
+                'UA' => 29,
+                'GB' => 22,
+                'DZ' => 24,
+                'AO' => 25,
+                'AZ' => 28,
+                'BH' => 22,
+                'BJ' => 28,
+                'BR' => 29,
+                'VG' => 24,
+                'BF' => 27,
+                'BI' => 16,
+                'CM' => 27,
+                'CV' => 25,
+                'FR' => 27,
+                'CG' => 27,
+                'CR' => 21,
+                'DO' => 28,
+                'EG' => 27,
+                'GA' => 27,
+                'GT' => 28,
+                'IR' => 26,
+                'IL' => 23,
+                'CI' => 28,
+                'JO' => 30,
+                'KZ' => 20,
+                'KW' => 30,
+                'LB' => 28,
+                'MG' => 27,
+                'ML' => 28,
+                'MR' => 27,
+                'MU' => 30,
+                'MZ' => 25,
+                'PK' => 24,
+                'PS' => 29,
+                'QA' => 29,
+                'PT' => 25,
+                'SA' => 24,
+                'SN' => 28,
+                'TN' => 24,
+                'TR' => 26,
+                'AE' => 23
+        );
 	
 	/**
 	 * Constructor
 	 * Checks whether required options are set and puts them in $options property
 	 * 
+         * @access protected
 	 * @param array mixed $options
+         * @param array int $maxLengths
 	 */
-	protected function __construct($options){
+	protected function __construct($options, $maxLengths = null){
 		$this->checkRequiredOptions($options);
-		$this->options = $this->cleanOptions($options);	
+		$this->options = $this->cleanOptions($options, $maxLengths);	
 	}
 	
 	/**
@@ -346,18 +442,29 @@ abstract class SepaPain{
 	}
 	
 	/**
-	 * Cleans all the strings in the $options array
+	 * Cleans all the strings in the $options array.
+         * If $maxLengths is an array and has the key of the option set, the option string is cut off at
+         * that the set length. If $maxLengts has an int value, all option strings are cut of at that length.
 	 * 
 	 * @access protected
 	 * @param array mixed $options
+         * @param array int | int $maxLengths
 	 * @return array mixed
 	 */
-	protected function cleanOptions(&$options){
-		foreach($options as &$value){
+	protected function cleanOptions(&$options, &$maxLengths = null){
+		foreach($options as $key => &$value){
 			if(is_string($value) && !is_numeric($value)){
 				$value = $this->cleanString($value);
+                                if(is_array($maxLengths)){
+                                    if(array_key_exists($key, $maxLengths) && strlen($value) > $maxLengths[$key]){
+                                        $value = substr($value, 0, $maxLengths[$key]);
+                                    }
+                                }elseif(is_int($maxLengths) && strlen($value) > $maxLengths){
+                                    $value = substr($value, 0, $maxLengths);
+                                }
 			}elseif(is_array($value)){
-				$value = $this->cleanOptions($value);
+                                $subMaxLengths = (is_array($maxLengths) && array_key_exists($key, $maxLengths)) ? $maxLengths['$key'] : null;
+				$value = $this->cleanOptions($value, $subMaxLengths);
 			}
 		}
 		return $options;
@@ -452,20 +559,25 @@ abstract class SepaPain{
 	 * @access public
 	 * @static
 	 * @param string $s
+         * @param int $maxLength (optional)
 	 * @return string
 	 */
-	public static function cleanString($s){
-		$o = $s;
+	public static function cleanString($s, $maxLength = null){
+		$original = $s;
 		$s = strtr(utf8_decode($s),
 				utf8_decode(
 				'ŠŒŽšœžŸ¥µÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýÿ'),
 				'SOZsozYYuAAAAAAACEEEEIIIIDNOOOOOOUUUUYsaaaaaaaceeeeiiiionoooooouuuuyy');
-		for($i = 0; $i < strlen($o); $i++){ // Question marks are replaced by some other character.
-			if(substr($o, $i, 1) == '?'){
+		for($i = 0; $i < strlen($original); $i++){ // Question marks are replaced by some other character.
+			if(substr($original, $i, 1) == '?'){
 				$s = substr_replace($s, '?', $i, 1); // Put question mark back
 			}
 		}
-		return preg_replace('/[^ a-z0-9\/\-?:\(\)\.,\'\+]/i', '', $s);
+		$s = preg_replace('/[^ a-z0-9\/\-?:\(\)\.,\'\+]/i', '', $s);
+                if(isset($maxLength) && strlen($s) > $maxLength){
+                    return substr($s, 0, $maxLength);
+                }
+                return $s;
 	}
 	
 	/**
@@ -477,15 +589,17 @@ abstract class SepaPain{
 	 * @return boolean: $iban is valid IBAN
 	 */
 	public static function validateIban($iban){
-		try{
-			$iban = self::splitIbanParts(self::cleanIban($iban));
+                $iban = self::cleanIban($iban);
+ 		try{
+                        $ibanParts = self::splitIbanParts($iban);
 		}catch(Exception $e){
 			return false;
 		}
-		if(!preg_match('/^[A-Z]{2}$/', $iban->country) || !array_key_exists($iban->country, self::$ISO3166)) return false; // Country code should consist of two alphanumeric characters
-		if(!preg_match('/^[0-9]{2}$/', $iban->checksum)) return false; // Checksum should consist of two digits
-		if(!preg_match('/^[A-Z0-9]+$/', $iban->identifier)) return false; // Identifier should consist of multiple alphanumeric characters and digits
-		if(!$iban->checksum == self::calculateIbanChecksum($iban->identifier, $iban->country)) return false; // Invalid checksum
+                if(array_key_exists($ibanParts->country, self::$ibanLengths) && (strlen($iban) != self::$ibanLengths[$ibanParts->country])) return false; // Invalid IBAN length
+		if(!preg_match('/^[A-Z]{2}$/', $ibanParts->country) || !array_key_exists($ibanParts->country, self::$ISO3166)) return false; // Country code should consist of two alphanumeric characters
+		if(!preg_match('/^[0-9]{2}$/', $ibanParts->checksum)) return false; // Checksum should consist of two digits
+		if(!preg_match('/^[A-Z0-9]+$/', $ibanParts->identifier)) return false; // Identifier should consist of multiple alphanumeric characters and digits
+		if($ibanParts->checksum != self::calculateIbanChecksum($ibanParts->identifier, $ibanParts->country)) return false; // Invalid checksum
 		return true;
 	}
 
@@ -498,7 +612,9 @@ abstract class SepaPain{
 	public static function cleanIban($iban){
 		$iban = strtoupper($iban);
 		$iban = preg_replace('/\s/', '', $iban);
-		if(substr($iban, 0, 4) == 'IBAN') $iban = substr($iban, 4);
+		if(substr($iban, 0, 4) == 'IBAN'){
+                    $iban = substr($iban, 4);
+                }
 		return $iban;
 	}
 	
@@ -514,7 +630,7 @@ abstract class SepaPain{
 	 */
 	private static function calculateIbanChecksum($accountIdentifier, $countryCode){
 		$fullNumber = self::convertIbanLettersToNumbers($accountIdentifier . $countryCode . '00');
-		return (string)(98 - intval(bcmod($fullNumber, 97)));
+		return (string)str_pad((98 - intval(bcmod($fullNumber, 97))), 2, '0', STR_PAD_LEFT);
 	}
 	
 	/**
@@ -557,9 +673,9 @@ abstract class SepaPain{
 	 */
 	public static function splitIbanParts($iban){
 		$splitIban = new stdClass();
-		$splitIban->country = substr($iban, 0, 2);
-		$splitIban->checksum = substr($iban, 2, 2);
-		$splitIban->identifier = substr($iban, 4);
+		$splitIban->country = (string)substr($iban, 0, 2);
+		$splitIban->checksum = (string)substr($iban, 2, 2);
+		$splitIban->identifier = (string)substr($iban, 4);
 		return $splitIban;
 	}
 	
@@ -574,5 +690,32 @@ abstract class SepaPain{
 	public static function validateBic($bic){
 		return preg_match('/^[A-Z]{6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3})?$/', $bic)  && array_key_exists(substr($bic, 4, 2), self::$ISO3166);
 	}
+        
+        /**
+         * Checks whether dates are correctly formatted for SEPA purposes
+         * 
+         * @static
+         * @access protected
+         * @param string $dateString
+         * @return boolean
+         */
+        protected static function validateDateString($dateString){
+             if(!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $dateString)){
+                return false;
+            }
+            return DateTime::createFromFormat('Y-m-d', $dateString) !== false;
+        }
+        
+        /**
+         * Turns a DateTime instance into a string for SEPA PAIN purposes
+         * 
+         * @static
+         * @access public
+         * @param object DateTime $dateTime
+         * @return type
+         */
+        public static function formatDate(DateTime $dateTime){
+            return $dateTime->format('Y m d');
+        }
 	
 }

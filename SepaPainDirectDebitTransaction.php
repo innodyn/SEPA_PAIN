@@ -58,6 +58,16 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 			'debtorCountry',
 			'debtorAddressLines'
 	);
+        
+        /**
+         * Associative array with maxmimum lengths of option strings
+         * @var array int
+         */
+        public static $optionMaxLengths = array(    'endToEndId' => 35,
+                                                    'instructionId' => 35,
+                                                    'mandateId' => 35,
+                                                    'debtorName' => 70,
+                                                    'debtorAddressLines' => 70);
 	
 	/**
 	 * Constructor
@@ -80,7 +90,15 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 		if(count($options['debtorAddressLines']) > 2){
 			throw new Exception('Too many debtor address lines in direct debit transaction. Maximum is 2.');
 		}
-		parent::__construct($options, $instruction);
+                if(!array_key_exists($options['debtorCountry'], self::$ISO3166)){
+                    throw new Exception('Debtor country is not a valid ISO 3166 country code.');
+                }
+                if(!is_a($options['mandateDateOfSignature'], 'DateTime')){
+                    if(!self::validateDateString($options['mandateDateOfSignature'])){
+                        throw new Exception('Mandate date of signature is invalid or incorrectly formatted (YYYY MM DD).');
+                    }
+                }
+		parent::__construct($options, $instruction, $this->optionMaxLengths);
 	}
 	
 	/**
@@ -91,9 +109,8 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 		$txInfo = $node->addChild('DrctDbtTxInf');
 		
 		$id = $txInfo->addChild('PmtId');
-		$id->addChild('EndToEndId', substr($this->cleanString($this->options['endToEndId']), 0, 35));
-		if($this->optionIsSet('instructionId')) $id->addChild('InstrId', $this->cleanString($this->options['instructionId']));
-		
+		$id->addChild('EndToEndId', $this->options['endToEndId']);
+                $this->setOptionalElement($id, 'InstrId', 'instructionId');
 		$txInfo->addChild('InstdAmt', $this->centsToCurrency($this->options['amount']))->addAttribute('Ccy', 'EUR');
 		
 		$tx = $txInfo->addChild('DrctDbtTx');
@@ -113,7 +130,9 @@ class SepaPainDirectDebitTransaction extends SepaPainTransaction{
 			$i = 0;
 			foreach($addressLines as $line){
 				$i++;
-				if($i <= 2) $address->addChild('AdrLine', $this->cleanString($line));
+				if($i <= 2){
+                                    $address->addChild('AdrLine', $this->cleanString($line));
+                                }
 			}
 		}
 		$txInfo->addChild('DbtrAcct')->addChild('Id')->addChild('IBAN', $this->options['debtorIBAN']);	

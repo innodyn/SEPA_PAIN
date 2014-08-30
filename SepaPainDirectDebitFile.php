@@ -45,6 +45,13 @@ class SepaPainDirectDebitFile extends SepaPainFile{
 	 * @var array mixed
 	 */
 	public static $requiredOptions = array('id', 'initiatingPartyName');
+        
+        /**
+         * Associative array with maxmimum lengths of option strings
+         * @var array int
+         */
+        public static $optionMaxLengths = array(    'id'=> 35,
+                                                    'initiatingPartyName' => 70);
 	
 	/**
 	 * Default sequence type in all payment types (OOFF = One off)
@@ -61,7 +68,7 @@ class SepaPainDirectDebitFile extends SepaPainFile{
 	 */
 	public function __construct($options){
 		if(!array_key_exists('defaultCountry', $options)) $options['defaultCountry'] = static::DEFAULT_COUNTRY;
-		parent::__construct($options);
+		parent::__construct($options, $this->optionMaxLengths);
 	}
 	
 	/**
